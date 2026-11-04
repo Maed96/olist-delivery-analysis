@@ -1,0 +1,26 @@
+With order_reviews AS (
+  SELECT order_id,
+  AVG(review_score) AS avg_review_score_per_order
+  FROM `portfolio-513612.olist.Order Reviews`
+  group by order_id
+),
+delivered_orders AS (
+SELECT order_id,
+CASE
+  WHEN DATE(order_delivered_carrier_date) > DATE(order_estimated_delivery_date)
+  THEN 'late' ELSE 'on time'
+END AS delivery_status
+FROM `portfolio-513612.olist.Orders`
+WHERE  order_status = 'delivered'
+AND order_delivered_customer_date is not null
+)
+
+select 
+  delivery_status,
+  COUNT(*) AS n_orders,
+  ROUND(avg(avg_review_score_per_order),2) AS avg_review_score,
+  ROUND(avg(Case when avg_review_score_per_order <=2 then 1 else 0 end)*100,2) AS pcg_bad_reviews
+
+from delivered_orders
+join  order_reviews on order_reviews.order_id = delivered_orders.order_id
+GROUP BY delivery_status;
